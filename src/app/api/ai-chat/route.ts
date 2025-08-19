@@ -10,14 +10,22 @@ const systemPrompt = `You are a helpful AI assistant that manages todos. You can
 
 When a user asks you to perform an action, use the appropriate function and then provide a summary of what was accomplished.
 
+IMPORTANT SEARCH STRATEGY:
+- When users mention partial words, keywords, or describe todos loosely (like "truck", "home", "buy", etc.), use smart_search_todos first
+- Use smart_search_todos for any ambiguous requests like "change truck to home", "update the buying todo", etc.
+- Only use find_todos_by_title when the user provides an exact title
+- Be proactive in finding todos even with partial information
+- If smart_search finds multiple matches, show them to the user and ask for clarification
+
 Available functions:
 - get_all_todos: Get all todos from the database
 - create_todo: Create a new todo item
 - update_todo: Update an existing todo by ID
 - delete_todo: Delete a todo by ID
 - toggle_todo_completion: Toggle the completion status of a todo
-- find_todos_by_title: Find todos by searching their titles
+- find_todos_by_title: Find todos by searching their titles (use only for exact titles)
 - find_todos_by_description: Find todos by searching their descriptions
+- smart_search_todos: PREFERRED for partial matches, keywords, or when user describes todo loosely
 - delete_todo_by_title: Delete a todo by its title (will ask for confirmation if multiple matches)
 - update_todo_by_title: Update a todo by its title (will ask for clarification if multiple matches)
 - toggle_todo_by_title: Toggle completion status by title (will ask for clarification if multiple matches)`;
@@ -107,6 +115,17 @@ const functions = [
         description: { type: "string", description: "The description text to search for" }
       },
       required: ["description"]
+    }
+  },
+  {
+    name: "smart_search_todos",
+    description: "Smart search across all todo fields (title, description, category) using keywords or phrases",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Search query - can be keywords, phrases, or partial matches" }
+      },
+      required: ["query"]
     }
   },
   {
@@ -234,6 +253,14 @@ async function handleFunctionCall(functionName: string, args: any) {
           success: true,
           todos: foundByDescription,
           message: `Found ${foundByDescription.length} todos matching description: "${args.description}"`
+        };
+
+      case "smart_search_todos":
+        const smartSearchResults = await DatabaseService.smartSearch(args.query);
+        return {
+          success: true,
+          todos: smartSearchResults,
+          message: `Found ${smartSearchResults.length} todos matching: "${args.query}"`
         };
 
       case "delete_todo_by_title":

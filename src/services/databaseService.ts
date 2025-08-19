@@ -120,16 +120,48 @@ export class DatabaseService {
   }
 
   static async findTodosByTitle(title: string): Promise<Todo[]> {
-    const todos = await prisma.todo.findMany({
+    // First try exact match
+    let todos = await prisma.todo.findMany({
       where: {
         title: {
-          contains: title
+          equals: title
         }
       },
       include: {
         category: true
       }
     });
+
+    // If no exact match, try partial match with contains
+    if (todos.length === 0) {
+      todos = await prisma.todo.findMany({
+        where: {
+          title: {
+            contains: title
+          }
+        },
+        include: {
+          category: true
+        }
+      });
+    }
+
+    // If still no match, try searching for individual words
+    if (todos.length === 0) {
+      const words = title.toLowerCase().split(' ');
+      todos = await prisma.todo.findMany({
+        where: {
+          OR: words.map(word => ({
+            title: {
+              contains: word
+            }
+          }))
+        },
+        include: {
+          category: true
+        }
+      });
+    }
 
     return todos.map(todo => ({
       id: todo.id,
@@ -145,7 +177,8 @@ export class DatabaseService {
   }
 
   static async findTodosByDescription(description: string): Promise<Todo[]> {
-    const todos = await prisma.todo.findMany({
+    // First try exact match in description
+    let todos = await prisma.todo.findMany({
       where: {
         description: {
           contains: description
@@ -154,6 +187,95 @@ export class DatabaseService {
       include: {
         category: true
       }
+    });
+
+    // If no match in description, try searching in title as well
+    if (todos.length === 0) {
+      const words = description.toLowerCase().split(' ');
+      todos = await prisma.todo.findMany({
+        where: {
+          OR: [
+            ...words.map(word => ({
+              title: {
+                contains: word
+              }
+            })),
+            ...words.map(word => ({
+              description: {
+                contains: word
+              }
+            }))
+          ]
+        },
+        include: {
+          category: true
+        }
+      });
+    }
+
+    return todos.map(todo => ({
+      id: todo.id,
+      title: todo.title,
+      description: todo.description || '',
+      completed: todo.completed,
+      priority: todo.priority.toLowerCase() as "high" | "medium" | "low",
+      category: todo.categoryId,
+      dueDate: todo.dueDate.toISOString().split('T')[0],
+      createdAt: todo.createdAt.toISOString(),
+      updatedAt: todo.updatedAt.toISOString()
+    }));
+  }
+
+  static async smartSearch(query: string): Promise<Todo[]> {
+    const words = query.toLowerCase().split(' ').filter(word => word.length > 0);
+
+    // Search across title, description, and category
+    const todos = await prisma.todo.findMany({
+      where: {
+        OR: [
+          // Exact phrase match in title
+          {
+            title: {
+              contains: query
+            }
+          },
+          // Exact phrase match in description
+          {
+            description: {
+              contains: query
+            }
+          },
+          // Individual word matches in title
+          ...words.map(word => ({
+            title: {
+              contains: word
+            }
+          })),
+          // Individual word matches in description
+          ...words.map(word => ({
+            description: {
+              contains: word
+            }
+          })),
+          // Category name match
+          {
+            category: {
+              name: {
+                contains: query
+              }
+            }
+          }
+        ]
+      },
+      include: {
+        category: true
+      },
+      orderBy: [
+        // Prioritize exact matches in title
+        {
+          title: 'asc'
+        }
+      ]
     });
 
     return todos.map(todo => ({
