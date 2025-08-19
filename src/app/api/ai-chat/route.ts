@@ -8,6 +8,8 @@ const openai = new OpenAI({
 
 const systemPrompt = `You are a helpful AI assistant that manages todos. You are DECISIVE and ACTION-ORIENTED. When a user asks you to do something, DO IT IMMEDIATELY without asking for confirmation.
 
+CRITICAL RULE: You must ALWAYS call the appropriate action function (create, update, delete, toggle) - NEVER just search and stop!
+
 CORE BEHAVIOR:
 - Execute actions immediately when requested
 - Only ask for clarification if you find MULTIPLE matches or if the request is genuinely ambiguous
@@ -16,16 +18,20 @@ CORE BEHAVIOR:
 - Always perform the action first, then give a brief confirmation
 
 SEARCH AND ACTION STRATEGY:
-- Use smart_search_todos for any partial matches or keywords
-- If you find exactly 1 match, execute the action immediately
-- If you find 0 matches, say so and suggest alternatives
-- If you find multiple matches, show options and ask which one
-- For updates: intelligently fill in missing information (descriptions, dates, etc.) based on context
+- When user asks to change/update: Use update_todo_by_title (which includes smart search)
+- When user asks to delete: Use delete_todo_by_title (which includes smart search)  
+- When user asks to mark complete/toggle: Use toggle_todo_by_title (which includes smart search)
+- DON'T use smart_search_todos alone unless user just wants to "find" or "show" todos
+- ALWAYS follow search with the appropriate action
 
-EXAMPLES OF GOOD BEHAVIOR:
-User: "Change truck to home" → Search for "truck", find "Buy Truck", update title to "Buy Home", update description to match
-User: "Delete the TypeScript todo" → Search for "TypeScript", find it, delete it immediately
-User: "Mark dentist as complete" → Search for "dentist", find it, mark as completed
+EXAMPLES OF CORRECT BEHAVIOR:
+User: "Change truck to home" → Call update_todo_by_title with title="truck", newTitle="Buy Home"
+User: "Delete the TypeScript todo" → Call delete_todo_by_title with title="TypeScript"
+User: "Mark dentist as complete" → Call toggle_todo_by_title with title="dentist"
+User: "Change hiking to soccer" → Call update_todo_by_title with title="hiking", newTitle="Plan weekend soccer game"
+
+WRONG BEHAVIOR (DON'T DO THIS):
+User: "Change truck to home" → Call smart_search_todos and then say "I found it and updated it" (YOU DIDN'T ACTUALLY UPDATE IT!)
 
 Available functions:
 - get_all_todos: Get all todos from the database
@@ -35,10 +41,10 @@ Available functions:
 - toggle_todo_completion: Toggle the completion status of a todo
 - find_todos_by_title: Find todos by searching their titles (use only for exact titles)
 - find_todos_by_description: Find todos by searching their descriptions
-- smart_search_todos: PREFERRED for partial matches, keywords, or when user describes todo loosely
-- delete_todo_by_title: Delete a todo by its title
-- update_todo_by_title: Update a todo by its title
-- toggle_todo_by_title: Toggle completion status by title`;
+- smart_search_todos: ONLY for finding/showing todos, NOT for actions
+- delete_todo_by_title: Delete a todo by its title (includes smart search)
+- update_todo_by_title: Update a todo by its title (includes smart search)
+- toggle_todo_by_title: Toggle completion status by title (includes smart search)`;
 
 const functions = [
   {
@@ -129,7 +135,7 @@ const functions = [
   },
   {
     name: "smart_search_todos",
-    description: "Smart search across all todo fields (title, description, category) using keywords or phrases",
+    description: "ONLY for finding/showing todos to the user. DO NOT use this for actions like update/delete/toggle - use the specific action functions instead",
     parameters: {
       type: "object",
       properties: {
@@ -140,22 +146,22 @@ const functions = [
   },
   {
     name: "delete_todo_by_title",
-    description: "Delete a todo by its title",
+    description: "Delete a todo by searching for it with keywords/partial title. Use this when user wants to delete a todo.",
     parameters: {
       type: "object",
       properties: {
-        title: { type: "string", description: "The title of the todo to delete" }
+        title: { type: "string", description: "Keywords or partial title to search for the todo to delete" }
       },
       required: ["title"]
     }
   },
   {
     name: "update_todo_by_title",
-    description: "Update a todo by its title",
+    description: "Update a todo by searching for it with keywords/partial title. Use this when user wants to change/update a todo.",
     parameters: {
       type: "object",
       properties: {
-        title: { type: "string", description: "The current title of the todo to update" },
+        title: { type: "string", description: "Keywords or partial title to search for the todo to update" },
         newTitle: { type: "string", description: "The new title" },
         description: { type: "string", description: "The new description" },
         priority: { type: "string", enum: ["high", "medium", "low"] },
@@ -168,11 +174,11 @@ const functions = [
   },
   {
     name: "toggle_todo_by_title",
-    description: "Toggle completion status of a todo by its title",
+    description: "Toggle completion status of a todo by searching for it with keywords/partial title. Use this when user wants to mark complete/incomplete.",
     parameters: {
       type: "object",
       properties: {
-        title: { type: "string", description: "The title of the todo to toggle" }
+        title: { type: "string", description: "Keywords or partial title to search for the todo to toggle" }
       },
       required: ["title"]
     }
