@@ -6,16 +6,26 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'your-api-key-here',
 });
 
-const systemPrompt = `You are a helpful AI assistant that manages todos. You can help users create, update, delete, and organize their todos. Always be friendly and provide clear feedback about the actions you take.
+const systemPrompt = `You are a helpful AI assistant that manages todos. You are DECISIVE and ACTION-ORIENTED. When a user asks you to do something, DO IT IMMEDIATELY without asking for confirmation.
 
-When a user asks you to perform an action, use the appropriate function and then provide a summary of what was accomplished.
+CORE BEHAVIOR:
+- Execute actions immediately when requested
+- Only ask for clarification if you find MULTIPLE matches or if the request is genuinely ambiguous
+- Don't ask for permission - just do what the user asked
+- Be concise in your responses
+- Always perform the action first, then give a brief confirmation
 
-IMPORTANT SEARCH STRATEGY:
-- When users mention partial words, keywords, or describe todos loosely (like "truck", "home", "buy", etc.), use smart_search_todos first
-- Use smart_search_todos for any ambiguous requests like "change truck to home", "update the buying todo", etc.
-- Only use find_todos_by_title when the user provides an exact title
-- Be proactive in finding todos even with partial information
-- If smart_search finds multiple matches, show them to the user and ask for clarification
+SEARCH AND ACTION STRATEGY:
+- Use smart_search_todos for any partial matches or keywords
+- If you find exactly 1 match, execute the action immediately
+- If you find 0 matches, say so and suggest alternatives
+- If you find multiple matches, show options and ask which one
+- For updates: intelligently fill in missing information (descriptions, dates, etc.) based on context
+
+EXAMPLES OF GOOD BEHAVIOR:
+User: "Change truck to home" → Search for "truck", find "Buy Truck", update title to "Buy Home", update description to match
+User: "Delete the TypeScript todo" → Search for "TypeScript", find it, delete it immediately
+User: "Mark dentist as complete" → Search for "dentist", find it, mark as completed
 
 Available functions:
 - get_all_todos: Get all todos from the database
@@ -26,9 +36,9 @@ Available functions:
 - find_todos_by_title: Find todos by searching their titles (use only for exact titles)
 - find_todos_by_description: Find todos by searching their descriptions
 - smart_search_todos: PREFERRED for partial matches, keywords, or when user describes todo loosely
-- delete_todo_by_title: Delete a todo by its title (will ask for confirmation if multiple matches)
-- update_todo_by_title: Update a todo by its title (will ask for clarification if multiple matches)
-- toggle_todo_by_title: Toggle completion status by title (will ask for clarification if multiple matches)`;
+- delete_todo_by_title: Delete a todo by its title
+- update_todo_by_title: Update a todo by its title
+- toggle_todo_by_title: Toggle completion status by title`;
 
 const functions = [
   {
@@ -264,14 +274,14 @@ async function handleFunctionCall(functionName: string, args: any) {
         };
 
       case "delete_todo_by_title":
-        const todosToDelete = await DatabaseService.findTodosByTitle(args.title);
+        const todosToDelete = await DatabaseService.smartSearch(args.title);
         if (todosToDelete.length === 0) {
-          return { success: false, message: `No todos found with title: "${args.title}"` };
+          return { success: false, message: `No todos found matching: "${args.title}"` };
         }
         if (todosToDelete.length > 1) {
           return {
             success: false,
-            message: `Multiple todos found with title "${args.title}". Please be more specific or use the delete by ID function.`,
+            message: `Multiple todos found matching "${args.title}". Please be more specific:\n${todosToDelete.map((t, i) => `${i + 1}. ${t.title}`).join('\n')}`,
             todos: todosToDelete
           };
         }
@@ -283,23 +293,30 @@ async function handleFunctionCall(functionName: string, args: any) {
         };
 
       case "update_todo_by_title":
-        const todosToUpdate = await DatabaseService.findTodosByTitle(args.title);
+        const todosToUpdate = await DatabaseService.smartSearch(args.title);
         if (todosToUpdate.length === 0) {
-          return { success: false, message: `No todos found with title: "${args.title}"` };
+          return { success: false, message: `No todos found matching: "${args.title}"` };
         }
         if (todosToUpdate.length > 1) {
           return {
             success: false,
-            message: `Multiple todos found with title "${args.title}". Please be more specific or use the update by ID function.`,
+            message: `Multiple todos found matching "${args.title}". Please be more specific:\n${todosToUpdate.map((t, i) => `${i + 1}. ${t.title}`).join('\n')}`,
             todos: todosToUpdate
           };
         }
 
         const todoToUpdateByTitle = todosToUpdate[0];
+
+        // Intelligently generate description if title is being changed
+        let newDescription = args.description;
+        if (args.newTitle && !args.description) {
+          newDescription = `Task: ${args.newTitle}`;
+        }
+
         const updatedByTitle = await DatabaseService.updateTodo({
           ...todoToUpdateByTitle,
           title: args.newTitle || todoToUpdateByTitle.title,
-          description: args.description !== undefined ? args.description : todoToUpdateByTitle.description,
+          description: newDescription !== undefined ? newDescription : todoToUpdateByTitle.description,
           priority: args.priority || todoToUpdateByTitle.priority,
           category: args.category || todoToUpdateByTitle.category,
           dueDate: args.dueDate || todoToUpdateByTitle.dueDate,
@@ -314,14 +331,14 @@ async function handleFunctionCall(functionName: string, args: any) {
         };
 
       case "toggle_todo_by_title":
-        const todosToToggleByTitle = await DatabaseService.findTodosByTitle(args.title);
+        const todosToToggleByTitle = await DatabaseService.smartSearch(args.title);
         if (todosToToggleByTitle.length === 0) {
-          return { success: false, message: `No todos found with title: "${args.title}"` };
+          return { success: false, message: `No todos found matching: "${args.title}"` };
         }
         if (todosToToggleByTitle.length > 1) {
           return {
             success: false,
-            message: `Multiple todos found with title "${args.title}". Please be more specific or use the toggle by ID function.`,
+            message: `Multiple todos found matching "${args.title}". Please be more specific:\n${todosToToggleByTitle.map((t, i) => `${i + 1}. ${t.title}`).join('\n')}`,
             todos: todosToToggleByTitle
           };
         }
