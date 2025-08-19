@@ -1,0 +1,76 @@
+{
+  "todos": [
+    {
+      "id": "4",
+      "title": "Schedule dentist appointment",
+      "description": "Call Dr. Smith's office to schedule routine cleaning appointment",
+      "completed": false,
+      "priority": "low",
+      "category": "health",
+      "dueDate": "2024-12-20",
+      "createdAt": "2024-12-13T11:15:00Z",
+      "updatedAt": "2025-08-19T00:07:38.242Z"
+    },
+    {
+      "id": "5",
+      "title": "Learn TypeScript advanced features",
+      "description": "Study advanced TypeScript concepts including conditional types, mapped types, and utility types",
+      "completed": false,
+      "priority": "medium",
+      "category": "learning",
+      "dueDate": "2024-12-30",
+      "createdAt": "2024-12-12T20:00:00Z",
+      "updatedAt": "2024-12-15T08:45:00Z"
+    },
+    {
+      "id": "6",
+      "title": "Plan weekend hiking trip",
+      "description": "Research hiking trails, check weather forecast, and pack necessary equipment",
+      "completed": false,
+      "priority": "low",
+      "category": "personal",
+      "dueDate": "2024-12-18",
+      "createdAt": "2024-12-14T19:30:00Z",
+      "updatedAt": "2025-08-18T23:38:43.432Z"
+    },
+    {
+      "id": "1755553824345",
+      "title": "Buy Truck",
+      "description": "Visit car dealerships, compare models and prices, and finalize the purchase.",
+      "completed": false,
+      "priority": "medium",
+      "category": "personal",
+      "dueDate": "2023-12-31",
+      "createdAt": "2025-08-18T21:50:24.345Z",
+      "updatedAt": "2025-08-18T23:25:04.308Z"
+    }
+  ],
+  "categories": [
+    {
+      "id": "work",
+      "name": "Work",
+      "color": "#3B82F6"
+    },
+    {
+      "id": "personal",
+      "name": "Personal",
+      "color": "#10B981"
+    },
+    {
+      "id": "health",
+      "name": "Health",
+      "color": "#EF4444"
+    },
+    {
+      "id": "learning",
+      "name": "Learning",
+      "color": "#8B5CF6"
+    }
+  ],
+  "metadata": {
+    "lastUpdated": "2025-08-19T00:09:12.625Z",
+    "totalTodos": 4,
+    "completedTodos": 0,
+    "version": "1.0.0"
+  }
+}

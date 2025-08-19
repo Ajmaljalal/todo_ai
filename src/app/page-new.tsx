@@ -67,7 +67,7 @@ export default function Home() {
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Todo App</h1>
             <p className="text-gray-600">Manage your tasks efficiently</p>
-            
+
             {/* Stats */}
             <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-blue-50 p-3 rounded-lg">
@@ -96,8 +96,8 @@ export default function Home() {
             <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
               <div className="flex flex-col sm:flex-row gap-4">
                 {/* Status Filter */}
-                <select 
-                  value={filter} 
+                <select
+                  value={filter}
                   onChange={(e) => setFilter(e.target.value as typeof filter)}
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
@@ -107,8 +107,8 @@ export default function Home() {
                 </select>
 
                 {/* Category Filter */}
-                <select 
-                  value={categoryFilter} 
+                <select
+                  value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
@@ -149,7 +149,7 @@ export default function Home() {
             )}
           </div>
         </div>
-        
+
         {/* AI Chat Panel - Right Side */}
         <div className="hidden md:block w-96 border-l border-gray-200 bg-white shadow-lg">
           <AIChat
@@ -161,7 +161,7 @@ export default function Home() {
             handleKeyPress={chatHook.handleKeyPress}
           />
         </div>
-        
+
         {/* Mobile Chat Button (only visible on small screens) */}
         <button
           onClick={() => setShowAIChat(true)}
@@ -172,7 +172,7 @@ export default function Home() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
         </button>
-        
+
         {/* Mobile Chat Modal (only shown when clicked on mobile) */}
         <AIChatModal
           isOpen={showAIChat}
@@ -184,7 +184,7 @@ export default function Home() {
           sendMessage={chatHook.sendMessage}
           handleKeyPress={chatHook.handleKeyPress}
         />
-        
+
         {/* Create Todo Modal */}
         {showCreateForm && (
           <TodoForm
